@@ -15,11 +15,12 @@ WiFiClient arduinoClient;
 PubSubClient client(arduinoClient);
 
 // Declaracion pines/conexiones en la placa
-const int PinLED = D4;
-const int PinPIR = D7;
 const int PinPhotoResistor = A0; 
 
 const int PinWindowStatusLed = D3;
+const int PinLED = D4;
+
+const int PinPIR = D7;
 
 const int PinMotor1 = D9; 
 const int PinMotor2 = D10;
@@ -36,6 +37,7 @@ bool windowOpen;
 int ligthValue;
 bool motionDetected;
 bool dayTime;
+bool prevDayTime;  
 
 // Configuracion conexion WiFi + Indicador de conexion exitosa
 void setup_wifi() {
@@ -78,6 +80,7 @@ void setup() {
   ligthValue = 0;
   motionDetected = false;
   dayTime = false;
+  prevDayTime = false;
   
   setup_wifi();
   client.setServer(mqtt_server, mqtt_port);
@@ -96,7 +99,8 @@ void openWindow() {
   delay(motorSpinTime);
 
   windowOpen = true;
-  digitalWrite(PinWindowStatusLed, HIGH);  
+  digitalWrite(PinWindowStatusLed, HIGH);
+  stopMotorSpin();  
 }
 
 void closeWindow() {
@@ -106,6 +110,7 @@ void closeWindow() {
 
   windowOpen = false;
   digitalWrite(PinWindowStatusLed, LOW);
+  stopMotorSpin();  
 }
 
 void turnOnLed() {
@@ -125,7 +130,14 @@ void readSensors() {
 }
 
 void systemControl() {
-  dayTime ? openWindow() : closeWindow();
+  if (dayTime != prevDayTime) {
+    if (dayTime) {
+      openWindow();
+    } else {
+      closeWindow();
+    }
+    prevDayTime = dayTime;  // actualizar estado anterior
+  }
   (motionDetected && !dayTime) ? turnOnLed() : turnOffLed();
 }
 
@@ -150,7 +162,7 @@ void loop() {
   
   // Lectura de sensores y actualizacion de su estado
   readSensors();
-  
+
   // Control logico del comportamiento segun lectura de sensores
   systemControl();
   
