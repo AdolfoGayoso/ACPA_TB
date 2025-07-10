@@ -2,8 +2,8 @@
 #include <PubSubClient.h>
 
 // Credenciales de red
-const char* ssid = "AFGC";
-const char* password = "mxcf15132310";
+const char* ssid = "poiute8";
+const char* password = "12345678";
 
 // Datos cliente MQTT 
 const char* mqtt_server = "iot.ceisufro.cl";
@@ -50,12 +50,26 @@ void setup_wifi() {
   Serial.println("\nWiFi conectado");
 }
 
+// Control LED integrado placa para ver estado de conexion
+void handleLEDStatus(bool connected) {
+  if (connected) {
+    digitalWrite(LED_BUILTIN, HIGH);  
+  } else {
+    digitalWrite(LED_BUILTIN, HIGH);  
+    delay(500);                  
+    digitalWrite(LED_BUILTIN, LOW);   
+    delay(500);                  
+  }
+}
+
 // Conexion a ThingsBoard
 void reconnect() {
   while (!client.connected()) {
-    Serial.print("Conectando a ThingsBoard... ");
+    Serial.print("Conectando a ThingsBoard");
+      handleLEDStatus(false);
     if (client.connect("arduinoClient", token, NULL)) {
       Serial.println("Conectado");
+      handleLEDStatus(true);
     } else {
       Serial.println("Fallo, rc=");
       Serial.println(client.state());
@@ -66,6 +80,8 @@ void reconnect() {
 
 void setup() {
   
+  pinMode(LED_BUILTIN, OUTPUT);
+
   pinMode(PinPIR, INPUT);
   pinMode(PinPhotoResistor, INPUT);
 
@@ -131,11 +147,7 @@ void readSensors() {
 
 void systemControl() {
   if (dayTime != prevDayTime) {
-    if (dayTime) {
-      openWindow();
-    } else {
-      closeWindow();
-    }
+    (dayTime) ? openWindow() : closeWindow();
     prevDayTime = dayTime;  // actualizar estado anterior
   }
   (motionDetected && !dayTime) ? turnOnLed() : turnOffLed();
@@ -168,7 +180,6 @@ void loop() {
   
   // Envio de JSON con lecturas/estados a ThingsBoard e impresion por serial
   client.publish("v1/devices/me/telemetry", generatePayload().c_str());
-  Serial.println(generatePayload());
-  
+
   delay(1000);
 }
